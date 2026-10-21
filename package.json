@@ -1,0 +1,5 @@
+{
+  "name": "dock-final-full",
+  "version": "6.0.0",
+  "dependencies": { "stripe": "^14.14.0" }
+}

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DOCK</title>
+  
+  <!-- PWA Requirements -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0F172A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body id="app-body">
+
+  <!-- Top App Bar -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-logo">D</div>
+      <div class="brand-text">
+        <h1>DOCK</h1>
+        <p id="lbl-header-sub">Core Edition</p>
+      </div>
+    </div>
+    <div class="header-actions-group">
+      <button class="icon-btn outline" onclick="openModal('accessibility-modal')" title="Accessibility Controls" style="font-size: 16px; padding: 6px 10px;">👁️‍🗨️</button>
+      <div class="header-stats">
+        <span id="header-level-badge">Lvl 1</span>
+        <div class="mini-xp-track"><div id="mini-xp-fill"></div></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-content">
+    
+    <!-- MAIN TASKS VIEW -->
+    <div id="view-tasks" class="view-section active">
+      
+      <!-- AI Assistant Card (Chat UI) -->
+      <section class="card gradient-border">
+        <div class="card-header">
+          <div>
+            <h3 id="lbl-assistant-title">DOCK Assistant</h3>
+            <p class="subtitle" id="lbl-assistant-sub">Type a task with a time</p>
+          </div>
+          <span style="font-size: 24px;" id="assistant-badge-icon">✨</span>
+        </div>
+        <div class="chat-log" id="chat-log">
+          <div class="chat-msg assistant" id="lbl-assistant-welcome">👋 Hello! Tell me a task with a time (e.g. <em>"School run at 8.10am"</em>) and I'll schedule it.</div>
+        </div>
+        <div class="chat-input-area">
+          <input type="text" id="assistant-input" placeholder="Message DOCK..." onkeypress="handleAssistantKey(event)">
+          <button class="send-btn" onclick="sendAssistantMsg()" id="btn-ask-dock">↑</button>
+        </div>
+      </section>
+
+      <!-- Manual Task Entry -->
+      <section class="card">
+        <h3 id="lbl-smart-entry" style="margin-bottom: 12px;">Quick Add</h3>
+        <div class="input-stack">
+          <input type="text" id="quick-task-input" placeholder="Task name..." onkeypress="handleTaskKey(event)">
+          <div class="flex-row">
+            <select id="task-day-select">
+              <option value="Unscheduled">Any Day</option>
+              <option value="Monday">Monday</option>
+              <option value="Tuesday">Tuesday</option>
+              <option value="Wednesday">Wednesday</option>
+              <option value="Thursday">Thursday</option>
+              <option value="Friday">Friday</option>
+              <option value="Saturday">Saturday</option>
+              <option value="Sunday">Sunday</option>
+            </select>
+            <select id="task-time-select">
+              <option value="Flexible">Any Time</option>
+              <option value="8:10 AM">8:10 AM (Exact)</option>
+              <option value="9:00 AM">9:00 AM (Exact)</option>
+              <option value="1:00 PM">1:00 PM (Exact)</option>
+              <option value="5:00 PM">5:00 PM (Exact)</option>
+            </select>
+          </div>
+          <button class="btn primary-gradient" onclick="addQuickTask()" id="btn-add-task">Add Task</button>
+        </div>
+      </section>
+
+      <!-- ACTIVE TASKS -->
+      <section class="task-list-section">
+        <div class="section-header">
+          <h3 id="lbl-active-tasks">Active Schedule</h3>
+          <button class="icon-btn" onclick="triggerEmailExport()" id="btn-email-export">✉️ Export</button>
+        </div>
+        <div id="task-container" class="task-stack"></div>
+      </section>
+
+      <!-- COMPLETED TASKS -->
+      <section class="task-list-section" id="completed-section" style="display: none;">
+        <div class="section-header">
+          <h3 id="lbl-completed-history" style="color: var(--text-muted);">Completed</h3>
+          <button class="icon-btn outline" onclick="clearCompleted()" id="btn-clear-history">Clear</button>
+        </div>
+        <div id="completed-container" class="task-stack completed-stack"></div>
+      </section>
+      
+      <div style="height: 40px;"></div>
+    </div>
+
+    <!-- PROFILE PAGE -->
+    <div id="view-profile" class="view-section">
+      <div class="card">
+        <h2 id="lbl-profile-heading" style="margin-bottom: 20px;">Profile & Stats</h2>
+
+        <div class="stats-box">
+          <div class="stats-row">
+            <div>
+              <span class="subtitle" id="lbl-player-rank">Player Rank</span>
+              <h3 id="profile-level-title">Level 1</h3>
+            </div>
+            <div style="text-align: right;">
+              <span class="xp-text" id="profile-xp-text">0 XP</span>
+            </div>
+          </div>
+          <div class="xp-bar-bg">
+            <div class="xp-bar-fill" id="xp-bar-fill"></div>
+          </div>
+          <p class="subtitle" style="margin-top: 8px;" id="lbl-xp-sub">Complete tasks to earn +50 XP!</p>
+        </div>
+
+        <h3 id="lbl-display-title" style="margin: 24px 0 12px;">Display Title</h3>
+        <div id="title-chips-container" class="chip-container"></div>
+
+        <div class="input-stack" style="margin-top: 30px;">
+          <label id="lbl-disp-name">Display Name</label>
+          <input type="text" id="profile-name-page" value="Sole Trader / User">
+          <label id="lbl-disp-email" style="margin-top: 10px;">Email (For Exports)</label>
+          <input type="email" id="profile-email-page" value="user@example.com">
+          <button class="btn primary-gradient" style="margin-top: 15px;" onclick="saveFullProfile()" id="btn-save-profile">Save Profile</button>
+        </div>
+      </div>
+      <div style="height: 40px;"></div>
+    </div>
+    
+    <!-- DOCK PLUS PAGE -->
+    <div id="view-plus" class="view-section">
+      <div class="card premium-card text-center">
+        <div class="premium-icon">⭐</div>
+        <h2 id="lbl-plus-title" class="premium-title">DOCK Plus</h2>
+        <p id="lbl-plus-desc" class="premium-desc">
+          Supercharge your workflow with the <strong>Google-Powered AI Neural Assistant</strong>, Real-Time Cloud Sync, and Formatted Weekly Email Dispatches.
+        </p>
+        <button id="stripe-checkout-btn" class="btn premium-btn">Upgrade - £2.99/mo</button>
+      </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div id="view-settings" class="view-section">
+      <div class="card">
+        <h2 id="lbl-settings-heading" style="margin-bottom: 24px;">Settings</h2>
+        
+        <div class="settings-group">
+          <h3 id="lbl-lang-heading">Language</h3>
+          <select id="language-select" onchange="changeLanguage(this.value)">
+            <option value="en">English (UK/US)</option>
+            <option value="es">Español (Spanish)</option>
+            <option value="fr">Français (French)</option>
+            <option value="de">Deutsch (German)</option>
+            <option value="pt">Português (Portuguese)</option>
+          </select>
+        </div>
+
+        <div class="settings-group">
+          <h3 id="lbl-data-mgmt">Data & Sync</h3>
+          <label class="toggle-row">
+            <span id="lbl-cloud-sync">Enable Cloud Sync <span class="pro-badge">PRO</span></span>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cloud-sync-toggle" onclick="handleProFeature('cloud-sync')">
+              <span class="slider"></span>
+            </div>
+          </label>
+        </div>
+
+        <div class="settings-group">
+          <h3>FAQs</h3>
+          <details>
+            <summary id="lbl-faq-1-q">How does AI work?</summary>
+            <p class="faq-ans" id="lbl-faq-1-a">Free users get our blazing-fast local engine. DOCK Plus subscribers unlock the Google AI neural assistant for complex commands.</p>
+          </details>
+          <details>
+            <summary id="lbl-faq-2-q">How does XP work?</summary>
+            <p class="faq-ans" id="lbl-faq-2-a">Completing tasks grants XP. Level up to unlock new profile titles.</p>
+          </details>
+        </div>
+
+        <div class="build-version">Build: DOCK Accessibility & Hybrid AI (v6.0)</div>
+      </div>
+      <div style="height: 40px;"></div>
+    </div>
+  </main>
+
+  <!-- ACCESSIBILITY MODAL (FREE & INSTANT) -->
+  <div class="modal-overlay" id="accessibility-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>👁️‍🗨️ Accessibility Settings</h2>
+        <button class="close-btn" onclick="closeModal('accessibility-modal')">✕</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div>
+          <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Font Size / Text Scale</label>
+          <select id="font-size-select" onchange="setAccessibilityFontSize(this.value)">
+            <option value="normal">Normal (100%)</option>
+            <option value="large">Large (115%)</option>
+            <option value="xlarge">Extra Large (130%)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Reading Support (Dyslexia-Friendly)</label>
+          <div class="toggle-row">
+            <span>OpenDyslexic Font Mode</span>
+            <div class="toggle-switch">
+              <input type="checkbox" id="dyslexia-toggle" onchange="toggleDyslexiaMode(this.checked)">
+              <span class="slider"></span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Color Themes</label>
+          <select id="theme-select" onchange="setThemeMode(this.value)">
+            <option value="midnight">Midnight Glass (Default Dark)</option>
+            <option value="contrast">High Contrast (Accessibility)</option>
+            <option value="sepia">Warm Sepia (Low Eye Strain)</option>
+            <option value="light">Clean Light Mode</option>
+          </select>
+        </div>
+        <button class="btn primary-gradient" onclick="closeModal('accessibility-modal')">Apply Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NATIVE NAVIGATION -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="switchView('tasks')" data-target="tasks">
+      <span class="icon">📋</span>
+      <span class="label" id="nav-lbl-tasks">Tasks</span>
+    </button>
+    <button class="nav-item" onclick="switchView('profile')" data-target="profile">
+      <span class="icon">👤</span>
+      <span class="label" id="nav-lbl-profile">Profile</span>
+    </button>
+    <button class="nav-item plus-tab" onclick="switchView('plus')" data-target="plus">
+      <span class="icon">⭐</span>
+      <span class="label">Plus</span>
+    </button>
+    <button class="nav-item" onclick="switchView('settings')" data-target="settings">
+      <span class="icon">⚙️</span>
+      <span class="label" id="nav-lbl-settings">Settings</span>
+    </button>
+  </nav>
+
+  <!-- EMAIL PREVIEW MODAL -->
+  <div class="modal-overlay" id="email-preview-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 style="font-size: 18px;">✉️ Export Preview</h2>
+        <button class="close-btn" onclick="closeModal('email-preview-modal')">✕</button>
+      </div>
+      <div id="email-items-container" class="email-mockup"></div>
+      <div class="modal-actions">
+        <button class="btn primary-gradient flex-1" onclick="sendSimulatedDockEmail()">Send Now</button>
+        <button class="btn secondary-btn flex-1" onclick="copyEmailHtmlToClipboard()">Copy HTML</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="celebration-banner" id="celebration-banner">
+    <span style="font-size: 24px;">🎉</span>
+    <div>
+      <strong id="banner-title">Task Completed!</strong>
+      <p id="celebration-subtitle">+50 XP</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
