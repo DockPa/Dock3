@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>DOCK</title>
+  <title>DOCK - News & Updates Edition</title>
   
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0F172A">
@@ -18,8 +18,11 @@
     <div class="brand">
       <div class="brand-logo">D</div>
       <div class="brand-text">
-        <h1>DOCK</h1>
-        <p id="lbl-header-sub">Core Edition</p>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <h1>DOCK</h1>
+          <span id="offline-status-pill" class="offline-pill online" title="Connection Status">● Live</span>
+        </div>
+        <p id="lbl-header-sub">News & Updates Edition</p>
       </div>
     </div>
     <div class="header-actions-group">
@@ -36,16 +39,59 @@
     <!-- MAIN TASKS VIEW -->
     <div id="view-tasks" class="view-section active">
       
-      <section class="card gradient-border">
+      <!-- VOICE MICRO-SPRINT HERO WIDGET -->
+      <section class="card gradient-border voice-sprint-card">
+        <div class="card-header" style="margin-bottom: 10px;">
+          <div>
+            <h3 id="lbl-voice-title">🎙️ Voice Micro-Sprint</h3>
+            <p class="subtitle" id="lbl-voice-sub">Tap & speak your task instantly</p>
+          </div>
+          <button class="mic-pulse-btn" id="mic-trigger-btn" onclick="toggleVoiceListening()" title="Start Voice Sprint">
+            <span id="mic-icon">🎙️</span>
+          </button>
+        </div>
+        <div id="voice-transcript-box" class="voice-transcript-box" style="display: none;">
+          <span class="subtitle" style="font-size: 0.75rem; display: block; margin-bottom: 4px;">Hearing speech...</span>
+          <p id="live-speech-text" style="font-style: italic; font-weight: 500;"></p>
+        </div>
+      </section>
+
+      <!-- CALENDAR IMPORT & SYNC CARD -->
+      <section class="card" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.05)); border: 1px solid rgba(59, 130, 246, 0.3);">
+        <div class="card-header">
+          <div>
+            <h3>📅 Calendar Import & Sync</h3>
+            <p class="subtitle">Import your on-device or Google Calendar</p>
+          </div>
+          <span style="font-size: 24px;">🔄</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button class="btn primary-gradient" onclick="importGoogleCalendarEvents()" style="font-size: 0.9rem; padding: 12px;">
+            📥 Import Today's Google Calendar Events
+          </button>
+          <div style="display: flex; gap: 10px;">
+            <input type="file" id="ics-file-input" accept=".ics" style="display: none;" onchange="handleIcsFileUpload(event)">
+            <button class="btn secondary-btn" onclick="document.getElementById('ics-file-input').click()" style="flex: 1; font-size: 0.85rem; padding: 10px;">
+              📂 Upload .ics File
+            </button>
+            <button class="btn secondary-btn" onclick="exportToIcs()" style="flex: 1; font-size: 0.85rem; padding: 10px;">
+              📤 Export .ics Feed
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- DOCK ASSISTANT -->
+      <section class="card">
         <div class="card-header">
           <div>
             <h3 id="lbl-assistant-title">DOCK Assistant</h3>
-            <p class="subtitle" id="lbl-assistant-sub">Type a task with a time</p>
+            <p class="subtitle" id="lbl-assistant-sub">Type with precise times & horizons</p>
           </div>
           <span style="font-size: 24px;" id="assistant-badge-icon">✨</span>
         </div>
         <div class="chat-log" id="chat-log">
-          <div class="chat-msg assistant" id="lbl-assistant-welcome">👋 Hello! Tell me a task with a time (e.g. <em>"School run at 8.10am"</em>) and I'll schedule it.</div>
+          <div class="chat-msg assistant" id="lbl-assistant-welcome">👋 Hello! Tell me a task with a precise time (e.g. <em>"School run at 8:10 AM"</em>) and I'll schedule it.</div>
         </div>
         <div class="chat-input-area">
           <input type="text" id="assistant-input" placeholder="Message DOCK..." onkeypress="handleAssistantKey(event)">
@@ -53,8 +99,9 @@
         </div>
       </section>
 
+      <!-- QUICK ADD WITH NOW, NEXT, LATER -->
       <section class="card">
-        <h3 id="lbl-smart-entry" style="margin-bottom: 12px;">Quick Add</h3>
+        <h3 id="lbl-smart-entry" style="margin-bottom: 12px;">Quick Add & Horizon Planning</h3>
         <div class="input-stack">
           <input type="text" id="quick-task-input" placeholder="Task name..." onkeypress="handleTaskKey(event)">
           <div class="flex-row">
@@ -69,17 +116,23 @@
               <option value="Sunday">Sunday</option>
             </select>
             <select id="task-time-select">
-              <option value="Flexible">Any Time</option>
               <option value="8:10 AM">8:10 AM (Exact)</option>
               <option value="9:00 AM">9:00 AM (Exact)</option>
               <option value="1:00 PM">1:00 PM (Exact)</option>
               <option value="5:00 PM">5:00 PM (Exact)</option>
+              <option value="Flexible">Any Time</option>
             </select>
           </div>
-          <button class="btn primary-gradient" onclick="addQuickTask()" id="btn-add-task">Add Task</button>
+          <div class="energy-selector-row">
+            <button class="energy-btn active" data-horizon="🎯 NOW" onclick="setQuickHorizon('🎯 NOW', this)">🎯 NOW</button>
+            <button class="energy-btn" data-horizon="⏳ NEXT" onclick="setQuickHorizon('⏳ NEXT', this)">⏳ NEXT</button>
+            <button class="energy-btn" data-horizon="🗓️ LATER" onclick="setQuickHorizon('🗓️ LATER', this)">🗓️ LATER</button>
+          </div>
+          <button class="btn primary-gradient" onclick="addQuickTask()" id="btn-add-task">Add Precision Task</button>
         </div>
       </section>
 
+      <!-- ACTIVE SCHEDULE -->
       <section class="task-list-section">
         <div class="section-header">
           <h3 id="lbl-active-tasks">Active Schedule</h3>
@@ -140,7 +193,7 @@
         <div class="premium-icon">⭐</div>
         <h2 id="lbl-plus-title" class="premium-title">DOCK Plus</h2>
         <p id="lbl-plus-desc" class="premium-desc">
-          Supercharge your workflow with the <strong>Google-Powered AI Neural Assistant</strong>, Real-Time Cloud Sync, and Formatted Weekly Email Dispatches.
+          Supercharge your workflow with <strong>Calendar Import/Sync</strong>, <strong>Voice Micro-Sprints</strong>, and Now-Next-Later Horizons.
         </p>
         <button id="get-dock-plus-btn" class="btn premium-btn" onclick="openModal('pricing-modal')">Get Dock Plus</button>
       </div>
@@ -163,31 +216,65 @@
         </div>
 
         <div class="settings-group">
-          <h3>Notifications</h3>
+          <h3 id="lbl-notif-heading">Notifications</h3>
           <label class="toggle-row">
-            <span>Enable Task Notifications</span>
+            <span id="lbl-notif-sub">Enable Task Alerts</span>
             <button class="icon-btn" onclick="requestNotificationPermission()">Test / Enable</button>
           </label>
         </div>
 
         <div class="settings-group">
-          <h3 id="lbl-data-mgmt">Data & Sync</h3>
+          <h3 id="lbl-news-heading">News & Updates</h3>
           <label class="toggle-row">
-            <span id="lbl-cloud-sync">Enable Cloud Sync <span class="pro-badge">PRO</span></span>
-            <div class="toggle-switch">
-              <input type="checkbox" id="cloud-sync-toggle" onclick="handleProFeature('cloud-sync')">
-              <span class="slider"></span>
-            </div>
+            <span>What's New in DOCK (v6.7)</span>
+            <button class="icon-btn" onclick="openModal('news-modal')">📰 View News</button>
           </label>
         </div>
 
-        <div class="build-version">Build: DOCK Accessibility & PayPal (v6.2)</div>
+        <div class="settings-group">
+          <h3 id="lbl-offline-heading">Offline Mode & Storage</h3>
+          <div class="toggle-row">
+            <span id="lbl-offline-status-text">Bulletproof Local Cache <span class="pro-badge" style="background:#10B981">ACTIVE</span></span>
+            <button class="icon-btn outline" onclick="syncOfflineQueue()">Force Sync</button>
+          </div>
+        </div>
+
+        <div class="build-version">Build: DOCK v6.7 (News & Updates Edition)</div>
       </div>
       <div style="height: 40px;"></div>
     </div>
   </main>
 
-  <!-- PRICING OPTIONS MODAL (PayPal Checkout) -->
+  <!-- NEWS & UPDATES MODAL -->
+  <div class="modal-overlay" id="news-modal">
+    <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h2>📰 DOCK News & Fixes</h2>
+        <button class="close-btn" onclick="closeModal('news-modal')">✕</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px; font-size: 0.92rem; line-height: 1.5;">
+        <div style="background: rgba(139, 92, 246, 0.1); padding: 14px; border-radius: 12px; border-left: 3px solid #8B5CF6;">
+          <strong>⭐ DOCK v6.7 Release (Today)</strong>
+          <p style="margin-top: 4px; color: var(--text-muted);">Added dedicated News & Updates popup tab directly inside Settings to track all recent enhancements and fixes.</p>
+        </div>
+        <div style="background: rgba(0,0,0,0.2); padding: 14px; border-radius: 12px;">
+          <strong>📅 v6.6 - Calendar Import & Sync</strong>
+          <p style="margin-top: 4px; color: var(--text-muted);">Introduced 1-click Google Calendar sync, `.ics` file upload parsing, and feed export support for on-device calendars.</p>
+        </div>
+        <div style="background: rgba(0,0,0,0.2); padding: 14px; border-radius: 12px;">
+          <strong>🎯 v6.5 - Now-Next-Later Horizons</strong>
+          <p style="margin-top: 4px; color: var(--text-muted);">Replaced energy filters with cognitive horizon zoning (Now, Next, Later) while retaining precise time scheduling for ADHD cognitive structure.</p>
+        </div>
+        <div style="background: rgba(0,0,0,0.2); padding: 14px; border-radius: 12px;">
+          <strong>🎙️ v6.0 - Voice Micro-Sprints</strong>
+          <p style="margin-top: 4px; color: var(--text-muted);">Added instant speech-to-task voice recognition and gamified XP progression with unlocking player titles.</p>
+        </div>
+        <button class="btn primary-gradient" onclick="closeModal('news-modal')" style="margin-top: 10px;">Got It</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRICING OPTIONS MODAL -->
   <div class="modal-overlay" id="pricing-modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -215,12 +302,12 @@
   <div class="modal-overlay" id="accessibility-modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>👁️‍🗨️ Accessibility Settings</h2>
+        <h2 id="lbl-access-modal-title">👁️‍🗨️ Accessibility Settings</h2>
         <button class="close-btn" onclick="closeModal('accessibility-modal')">✕</button>
       </div>
       <div style="display: flex; flex-direction: column; gap: 16px;">
         <div>
-          <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Font Size / Text Scale</label>
+          <label id="lbl-fontsize-label" style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Font Size / Text Scale</label>
           <select id="font-size-select" onchange="setAccessibilityFontSize(this.value)">
             <option value="normal">Normal (100%)</option>
             <option value="large">Large (115%)</option>
@@ -230,7 +317,7 @@
         <div>
           <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Reading Support (Dyslexia-Friendly)</label>
           <div class="toggle-row">
-            <span>OpenDyslexic Font Mode</span>
+            <span id="lbl-dyslexia-text">OpenDyslexic Font Mode</span>
             <div class="toggle-switch">
               <input type="checkbox" id="dyslexia-toggle" onchange="toggleDyslexiaMode(this.checked)">
               <span class="slider"></span>
@@ -238,7 +325,7 @@
           </div>
         </div>
         <div>
-          <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Color Themes</label>
+          <label id="lbl-theme-label" style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Color Themes</label>
           <select id="theme-select" onchange="setThemeMode(this.value)">
             <option value="midnight">Midnight Glass (Default Dark)</option>
             <option value="contrast">High Contrast (Accessibility)</option>
@@ -246,7 +333,7 @@
             <option value="light">Clean Light Mode</option>
           </select>
         </div>
-        <button class="btn primary-gradient" onclick="closeModal('accessibility-modal')">Apply Settings</button>
+        <button class="btn primary-gradient" onclick="closeModal('accessibility-modal')" id="btn-apply-access">Apply Settings</button>
       </div>
     </div>
   </div>
