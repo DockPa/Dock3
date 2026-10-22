@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>DOCK</title>
   
-  <!-- PWA Requirements -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0F172A">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,7 +14,6 @@
 </head>
 <body id="app-body">
 
-  <!-- Top App Bar -->
   <header class="app-header">
     <div class="brand">
       <div class="brand-logo">D</div>
@@ -38,7 +36,6 @@
     <!-- MAIN TASKS VIEW -->
     <div id="view-tasks" class="view-section active">
       
-      <!-- AI Assistant Card (Chat UI) -->
       <section class="card gradient-border">
         <div class="card-header">
           <div>
@@ -56,14 +53,13 @@
         </div>
       </section>
 
-      <!-- Manual Task Entry -->
       <section class="card">
         <h3 id="lbl-smart-entry" style="margin-bottom: 12px;">Quick Add</h3>
         <div class="input-stack">
           <input type="text" id="quick-task-input" placeholder="Task name..." onkeypress="handleTaskKey(event)">
           <div class="flex-row">
             <select id="task-day-select">
-              <option value="Unscheduled">Any Day</option>
+              <option value="Every Day">Every Day</option>
               <option value="Monday">Monday</option>
               <option value="Tuesday">Tuesday</option>
               <option value="Wednesday">Wednesday</option>
@@ -84,7 +80,6 @@
         </div>
       </section>
 
-      <!-- ACTIVE TASKS -->
       <section class="task-list-section">
         <div class="section-header">
           <h3 id="lbl-active-tasks">Active Schedule</h3>
@@ -93,7 +88,6 @@
         <div id="task-container" class="task-stack"></div>
       </section>
 
-      <!-- COMPLETED TASKS -->
       <section class="task-list-section" id="completed-section" style="display: none;">
         <div class="section-header">
           <h3 id="lbl-completed-history" style="color: var(--text-muted);">Completed</h3>
@@ -148,7 +142,7 @@
         <p id="lbl-plus-desc" class="premium-desc">
           Supercharge your workflow with the <strong>Google-Powered AI Neural Assistant</strong>, Real-Time Cloud Sync, and Formatted Weekly Email Dispatches.
         </p>
-        <button id="stripe-checkout-btn" class="btn premium-btn">Upgrade - £2.99/mo</button>
+        <button id="get-dock-plus-btn" class="btn premium-btn" onclick="openModal('pricing-modal')">Get Dock Plus</button>
       </div>
     </div>
 
@@ -169,6 +163,14 @@
         </div>
 
         <div class="settings-group">
+          <h3>Notifications</h3>
+          <label class="toggle-row">
+            <span>Enable Task Notifications</span>
+            <button class="icon-btn" onclick="requestNotificationPermission()">Test / Enable</button>
+          </label>
+        </div>
+
+        <div class="settings-group">
           <h3 id="lbl-data-mgmt">Data & Sync</h3>
           <label class="toggle-row">
             <span id="lbl-cloud-sync">Enable Cloud Sync <span class="pro-badge">PRO</span></span>
@@ -179,25 +181,37 @@
           </label>
         </div>
 
-        <div class="settings-group">
-          <h3>FAQs</h3>
-          <details>
-            <summary id="lbl-faq-1-q">How does AI work?</summary>
-            <p class="faq-ans" id="lbl-faq-1-a">Free users get our blazing-fast local engine. DOCK Plus subscribers unlock the Google AI neural assistant for complex commands.</p>
-          </details>
-          <details>
-            <summary id="lbl-faq-2-q">How does XP work?</summary>
-            <p class="faq-ans" id="lbl-faq-2-a">Completing tasks grants XP. Level up to unlock new profile titles.</p>
-          </details>
-        </div>
-
-        <div class="build-version">Build: DOCK Accessibility & Hybrid AI (v6.0)</div>
+        <div class="build-version">Build: DOCK Accessibility & PayPal (v6.2)</div>
       </div>
       <div style="height: 40px;"></div>
     </div>
   </main>
 
-  <!-- ACCESSIBILITY MODAL (FREE & INSTANT) -->
+  <!-- PRICING OPTIONS MODAL (PayPal Checkout) -->
+  <div class="modal-overlay" id="pricing-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>⭐ Choose Your Plan</h2>
+        <button class="close-btn" onclick="closeModal('pricing-modal')">✕</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <button class="btn primary-gradient" onclick="startCheckout('monthly')" style="text-align: left; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;">
+          <div><strong>Monthly Pass</strong><br><span style="font-size:0.8rem; opacity:0.8;">Full AI & Cloud Access</span></div>
+          <span style="font-size:1.1rem; font-weight:bold;">£2.99/mo</span>
+        </button>
+        <button class="btn primary-gradient" onclick="startCheckout('annually')" style="text-align: left; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #3B82F6, #1D4ED8);">
+          <div><strong>Annual Pass</strong><br><span style="font-size:0.8rem; opacity:0.8;">Save with yearly billing</span></div>
+          <span style="font-size:1.1rem; font-weight:bold;">£29.99/yr</span>
+        </button>
+        <button class="btn primary-gradient" onclick="startCheckout('lifetime')" style="text-align: left; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #F59E0B, #EA580C);">
+          <div><strong>Lifetime Pass</strong><br><span style="font-size:0.8rem; opacity:0.8;">Pay once, own forever</span></div>
+          <span style="font-size:1.1rem; font-weight:bold;">£49.99</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCESSIBILITY MODAL -->
   <div class="modal-overlay" id="accessibility-modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -237,7 +251,6 @@
     </div>
   </div>
 
-  <!-- BOTTOM NATIVE NAVIGATION -->
   <nav class="bottom-nav">
     <button class="nav-item active" onclick="switchView('tasks')" data-target="tasks">
       <span class="icon">📋</span>
@@ -256,21 +269,6 @@
       <span class="label" id="nav-lbl-settings">Settings</span>
     </button>
   </nav>
-
-  <!-- EMAIL PREVIEW MODAL -->
-  <div class="modal-overlay" id="email-preview-modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 style="font-size: 18px;">✉️ Export Preview</h2>
-        <button class="close-btn" onclick="closeModal('email-preview-modal')">✕</button>
-      </div>
-      <div id="email-items-container" class="email-mockup"></div>
-      <div class="modal-actions">
-        <button class="btn primary-gradient flex-1" onclick="sendSimulatedDockEmail()">Send Now</button>
-        <button class="btn secondary-btn flex-1" onclick="copyEmailHtmlToClipboard()">Copy HTML</button>
-      </div>
-    </div>
-  </div>
 
   <div class="celebration-banner" id="celebration-banner">
     <span style="font-size: 24px;">🎉</span>

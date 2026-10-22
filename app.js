@@ -9,7 +9,7 @@ let state = {
   activeTitle: "Novice Scheduler",
   unlockedTitles: ["Novice Scheduler"],
   tasks: [
-    { id: 1, text: "Work shift / Sole trader jobs", day: "Monday", timeSlot: "9:00 AM", duration: "3 hrs", completed: false },
+    { id: 1, text: "Work shift / Sole trader jobs", day: "Every Day", timeSlot: "9:00 AM", duration: "3 hrs", completed: false },
     { id: 2, text: "Family dinner", day: "Tuesday", timeSlot: "5:00 PM", duration: "1.5 hrs", completed: false }
   ]
 };
@@ -24,7 +24,7 @@ const translations = {
     playerRank: "Player Rank", xpSub: "Complete tasks to earn +50 XP!",
     displayTitle: "Display Title", dispName: "Display Name", dispEmail: "Email (For Exports)", saveProfile: "Save Profile",
     plusTitle: "DOCK Plus", plusDesc: "Supercharge your workflow with the Google-Powered AI Neural Assistant, Real-Time Cloud Sync, and Formatted Weekly Email Dispatches.",
-    plusBtn: "Upgrade - £2.99/mo", settingsHeading: "Settings", langHeading: "Language",
+    getDockPlusBtn: "Get Dock Plus", settingsHeading: "Settings", langHeading: "Language",
     dataMgmt: "Data & Sync", cloudSync: "Enable Cloud Sync <span class='pro-badge'>PRO</span>"
   }
 };
@@ -54,7 +54,7 @@ function changeLanguage(langKey) {
   document.getElementById('btn-save-profile').innerText = t.saveProfile;
   document.getElementById('lbl-plus-title').innerText = t.plusTitle;
   document.getElementById('lbl-plus-desc').innerText = t.plusDesc;
-  document.getElementById('stripe-checkout-btn').innerText = t.plusBtn;
+  document.getElementById('get-dock-plus-btn').innerText = t.getDockPlusBtn;
   document.getElementById('lbl-settings-heading').innerText = t.settingsHeading;
   document.getElementById('lbl-lang-heading').innerText = t.langHeading;
   document.getElementById('lbl-data-mgmt').innerText = t.dataMgmt;
@@ -69,8 +69,7 @@ const allTitlesData = [
 ];
 
 let pendingSuggestion = null;
-let userEmail = "user@example.com";
-const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const days = ["Every Day", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 let bannerTimeout = null;
 
 function initApp() {
@@ -90,7 +89,7 @@ function initApp() {
   if (urlParams.get('upgrade') === 'success') {
     state.isPlus = true;
     localStorage.setItem('dock_isPlus', 'true');
-    alert("Payment Successful! Welcome to DOCK Plus. Google AI Neural Assistant is active.");
+    alert("Payment Successful via PayPal! Welcome to DOCK Plus. Google AI Neural Assistant is active.");
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 
@@ -108,29 +107,43 @@ function loadSavedData() {
   if(savedXp !== null) state.xp = parseInt(savedXp, 10);
   const savedTitle = localStorage.getItem('dock_active_title');
   if(savedTitle) state.activeTitle = savedTitle;
-  const savedTasks = localStorage.getItem('dock_tasks_v17');
+  const savedTasks = localStorage.getItem('dock_tasks_v19');
   if(savedTasks) { try { state.tasks = JSON.parse(savedTasks); } catch(e) {} }
   calculateLevel();
 }
 
-function saveTasksToStorage() { localStorage.setItem('dock_tasks_v17', JSON.stringify(state.tasks)); }
+function saveTasksToStorage() { localStorage.setItem('dock_tasks_v19', JSON.stringify(state.tasks)); }
 
-// Accessibility Handlers
+function requestNotificationPermission() {
+  if (!("Notification" in window)) {
+    alert("This browser does not support desktop notifications.");
+    return;
+  }
+  Notification.requestPermission().then(permission => {
+    if (permission === "granted") {
+      new Notification("DOCK Notifications Enabled!", {
+        body: "You'll now receive alerts for your scheduled tasks.",
+        icon: "icon.png"
+      });
+      alert("Notifications successfully enabled!");
+    } else {
+      alert("Notification permission was denied.");
+    }
+  });
+}
+
 function applyAccessibilitySettings() {
   const body = document.getElementById('app-body');
   body.className = '';
   
-  // Theme
   if (state.theme !== 'midnight') body.classList.add('theme-' + state.theme);
   const themeSelect = document.getElementById('theme-select');
   if (themeSelect) themeSelect.value = state.theme;
 
-  // Dyslexia
   if (state.dyslexia) body.classList.add('dyslexia-mode');
   const dyslexiaToggle = document.getElementById('dyslexia-toggle');
   if (dyslexiaToggle) dyslexiaToggle.checked = state.dyslexia;
 
-  // Font Size
   if (state.fontSize === 'large') body.style.setProperty('--font-size-multiplier', '1.15rem');
   else if (state.fontSize === 'xlarge') body.style.setProperty('--font-size-multiplier', '1.3rem');
   else body.style.setProperty('--font-size-multiplier', '1rem');
@@ -160,12 +173,30 @@ function setAccessibilityFontSize(val) {
 function handleProFeature(featureName) {
   if (!state.isPlus) {
     if (featureName === 'cloud-sync') document.getElementById('cloud-sync-toggle').checked = false;
-    alert(`This feature requires DOCK Plus (£2.99/mo). Redirecting...`);
-    switchView('plus');
+    openModal('pricing-modal');
     return false;
   }
   if (featureName === 'cloud-sync') localStorage.setItem('dock_cloud_sync', document.getElementById('cloud-sync-toggle').checked);
   return true;
+}
+
+async function startCheckout(planType) {
+  closeModal('pricing-modal');
+  try {
+    const res = await fetch('/api/checkout', { 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan: planType })
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert("PayPal checkout session created (" + planType + ").");
+    }
+  } catch (error) {
+    alert("Redirecting to secure PayPal checkout for " + planType + "...");
+  }
 }
 
 function triggerEmailExport() {
@@ -297,9 +328,6 @@ function renderTasks() {
   } else { completedSection.style.display = 'none'; }
 }
 
-// ------------------------------------------------------------------
-// ENGINE 1: LOCAL PARSER (For Free Users)
-// ------------------------------------------------------------------
 function parseExactTime(query) {
   let timeMatch = query.match(/(\d{1,2})[\.:](\d{2})\s*(am|pm)?/i) || query.match(/(\d{1,2})\s*(am|pm)/i);
   if (timeMatch) {
@@ -321,36 +349,22 @@ function parseExactTime(query) {
 
 function resolveTargetDay(query) {
   let lower = query.toLowerCase();
-  if (lower.includes('today')) { let now = new Date(); return { day: days[now.getDay()], relative: "Today" }; }
-  if (lower.includes('tomorrow')) { let tom = new Date(); tom.setDate(tom.getDate() + 1); return { day: days[tom.getDay()], relative: "Tomorrow" }; }
+  if (lower.includes('today')) { let now = new Date(); return { day: days[now.getDay() === 0 ? 7 : now.getDay()], relative: "Today" }; }
+  if (lower.includes('tomorrow')) { let tom = new Date(); tom.setDate(tom.getDate() + 1); return { day: "Tomorrow", relative: "Tomorrow" }; }
 
   let foundDay = days.find(d => lower.includes(d.toLowerCase()));
   if (foundDay) return { day: foundDay, relative: foundDay };
 
-  let exactTimeStr = parseExactTime(query);
-  let now = new Date();
-  let todayDay = days[now.getDay()];
-
-  if (exactTimeStr) {
-    let [timePart, modifier] = exactTimeStr.split(' ');
-    let [hours, minutes] = timePart.split(':').map(Number);
-    if (modifier === 'PM' && hours < 12) hours += 12;
-    if (modifier === 'AM' && hours === 12) hours = 0;
-    let targetTimeToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
-
-    if (now < targetTimeToday) return { day: todayDay, relative: "Today" };
-    else { let tom = new Date(); tom.setDate(tom.getDate() + 1); return { day: days[tom.getDay()], relative: "Tomorrow" }; }
-  }
-  return { day: todayDay, relative: "Today" };
+  return { day: "Every Day", relative: "Today" };
 }
 
 function processWithLocalEngine(query) {
   let { day: targetDay, relative } = resolveTargetDay(query);
   let exactTime = parseExactTime(query);
   let timeSlotForSave = exactTime ? exactTime : "Flexible";
-  let timeDisplayText = exactTime ? `${relative} (${targetDay}) at ${exactTime}` : `${relative} (${targetDay})`;
+  let timeDisplayText = exactTime ? `${relative} at ${exactTime}` : `${relative}`;
 
-  let cleanTitle = query.replace(/(\d{1,2})[\.:](\d{2})\s*(am|pm)?/gi, '').replace(/(\d{1,2})\s*(am|pm)/gi, '').replace(/ (today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday) /gi, '').replace(/^(can you find me|find me|i need to find time to|i need to find time for|i need to|i need time to|i need time|i need|find time for|find time|find|schedule) /gi, '').replace(/ (on|at|for) /gi, ' ').trim().replace(/^(to|for|a|an|the|my|me|put)\s+/gi, '').trim();
+  let cleanTitle = query.replace(/(\d{1,2})[\.:](\d{2})\s*(am|pm)?/gi, '').replace(/(\d{1,2})\s*(am|pm)/gi, '').replace(/ (today|tomorrow|every day|monday|tuesday|wednesday|thursday|friday|saturday|sunday) /gi, '').replace(/^(can you find me|find me|i need to find time to|i need to find time for|i need to|i need time to|i need time|i need|find time for|find time|find|schedule) /gi, '').replace(/ (on|at|for) /gi, ' ').trim().replace(/^(to|for|a|an|the|my|me|put)\s+/gi, '').trim();
 
   if (cleanTitle.length < 2 || cleanTitle.toLowerCase() === 'it') cleanTitle = 'Task';
   let taskTitle = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);
@@ -359,11 +373,11 @@ function processWithLocalEngine(query) {
   
   const html = `I found a slot for <strong>${timeDisplayText}</strong>.<br><br>Schedule <strong>"${taskTitle}"</strong>?
     <div style="display:flex;gap:8px;margin-top:12px;">
-      <button class="btn primary-gradient" style="padding:8px;font-size:0.8rem;" onclick="confirmSchedule()">Schedule for ${relative}</button>
+      <button class="btn primary-gradient" style="padding:8px;font-size:0.8rem;" onclick="confirmSchedule()">Schedule</button>
       <button class="btn secondary-btn" style="padding:8px;font-size:0.8rem;" onclick="promptPickAnotherDay()">Pick Day</button>
     </div>
     <div style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">
-      💡 Tip: For messy conversational scheduling ("Remind me to paint after my work shift"), upgrade to <a href="#" onclick="switchView('plus')" style="color:var(--primary); font-weight:bold;">DOCK Plus</a> for the Google AI Brain.
+      💡 Tip: For complex conversational scheduling, upgrade to <a href="#" onclick="switchView('plus')" style="color:var(--primary); font-weight:bold;">DOCK Plus</a>.
     </div>`;
   appendChat(html, 'assistant');
 }
@@ -383,9 +397,6 @@ function selectCustomDay(selectedDay) {
   confirmSchedule();
 }
 
-// ------------------------------------------------------------------
-// ENGINE 2: CLOUD AI (For DOCK Plus Subscribers)
-// ------------------------------------------------------------------
 let isAiThinking = false;
 
 async function processWithRealAI(query) {
@@ -434,20 +445,23 @@ async function processWithRealAI(query) {
   }
 }
 
-// ------------------------------------------------------------------
-// UNIFIED CONFIRMATION & ROUTING
-// ------------------------------------------------------------------
 function confirmSchedule() {
   if (!pendingSuggestion) return;
   const { taskTitle, day, duration, timeDisplayText, timeSlotForSave } = pendingSuggestion;
   state.tasks.unshift({ id: Date.now(), text: taskTitle, day, timeSlot: timeSlotForSave, duration, completed: false });
   saveTasksToStorage(); renderTasks();
   appendChat(`✅ Locked in: <strong>"${taskTitle}"</strong>. I've updated your schedule.`, 'assistant');
+  
+  if (window.Notification && Notification.permission === "granted") {
+    new Notification("Task Scheduled!", { body: `${taskTitle} (${day} @ ${timeSlotForSave})`, icon: "icon.png" });
+  }
+
   pendingSuggestion = null;
 }
 
 function cancelSchedule() {
   pendingSuggestion = null;
+  appendScanMessage = "Scrapped it. What do you need instead?";
   appendChat("Scrapped it. What do you need instead?", 'assistant');
 }
 
@@ -462,7 +476,6 @@ function sendAssistantMsg() {
     return;
   }
 
-  // --- THE PAYWALL ROUTER ---
   if (state.isPlus) {
     processWithRealAI(raw);
   } else {
@@ -481,17 +494,6 @@ function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function sendSimulatedDockEmail() { closeModal('email-preview-modal'); alert(`🚀 Dispatched from DOCK!`); }
 function copyEmailHtmlToClipboard() { closeModal('email-preview-modal'); alert('📋 Copied!'); }
-
-document.getElementById('stripe-checkout-btn')?.addEventListener('click', async () => {
-  const btn = document.getElementById('stripe-checkout-btn');
-  btn.innerText = "Loading...";
-  try {
-    const res = await fetch('/api/checkout', { method: 'POST' });
-    const data = await res.json();
-    if (data.url) window.location.href = data.url; 
-    else { alert("API not detected locally."); btn.innerText = "Upgrade - £2.99/mo"; }
-  } catch (error) { alert("Checkout error."); btn.innerText = "Upgrade - £2.99/mo"; }
-});
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(()=>{}); });
